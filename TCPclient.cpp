@@ -31,7 +31,9 @@ int main() {
         std::cerr << "Connection Failed" << std::endl;
         return -1;
     }
-    std::string hello = "Hello from client";
+    //std::string hello = "Hello from client";
+    std::string hello;
+    std::getline(std::cin, hello);
     send(sock, hello.c_str(), hello.size(), 0);
     std::cout << "Hello message sent" << std::endl;
     ssize_t valread = read(sock, buffer, BUFFER_SIZE);
