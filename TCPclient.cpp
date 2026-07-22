@@ -42,3 +42,4 @@ int main() {
     close(sock);
     return 0;
 }
+//g++ TCPclient.cpp -o client

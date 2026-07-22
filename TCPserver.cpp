@@ -21,8 +21,13 @@ int main() {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
-    //forcefully attaching socket to the port 8080
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+    // //forcefully attaching socket to the port 8080
+    // if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+    //     perror("setsockopt");
+    //     exit(EXIT_FAILURE);
+    // }
+    //forcefully attaching socket to the port 8080 [MAC]
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
         perror("setsockopt");
         exit(EXIT_FAILURE);
     }
@@ -47,7 +52,7 @@ int main() {
     }
     //read and echo the received message
     ssize_t valread = read(new_socket, buffer, BUFFER_SIZE);
-    std::cout << "Received " << buffer << std::endl;
+    std::cout << "Received: " << buffer << std::endl;
     send(new_socket, buffer, valread, 0);
     std::cout << "Echo message sent" << std::endl;
     //close the socket
@@ -55,3 +60,4 @@ int main() {
     close(server_fd);
     return 0;
 }   
+//g++ TCPserver.cpp -o server
