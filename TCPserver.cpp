@@ -21,16 +21,16 @@ int main() {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
-    //forcefully attaching socket to the port 8080
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
-        perror("setsockopt");
-        exit(EXIT_FAILURE);
-    }
-    //forcefully attaching socket to the port 8080 [MAC]
-    // if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
+    // //forcefully attaching socket to the port 8080
+    // if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
     //     perror("setsockopt");
     //     exit(EXIT_FAILURE);
     // }
+    //forcefully attaching socket to the port 8080 [MAC]
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
@@ -46,13 +46,15 @@ int main() {
     }
     std::cout << "Server listening on port " << PORT << std::endl;
     //accept incoming connection
-    while (int y = 1 > 0)
+    int y = 2;
+    while (y > 0)
     {
         if ((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) < 0) {
             perror("accept");
             exit(EXIT_FAILURE);
         }
         std::cout << "Client connectd." << std::endl;
+        y--;
     }
     //read and echo the received message
     ssize_t valread = read(new_socket, buffer, BUFFER_SIZE);
