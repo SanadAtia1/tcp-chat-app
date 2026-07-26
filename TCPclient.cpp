@@ -31,17 +31,21 @@ int main() {
         std::cerr << "Connection Failed" << std::endl;
         return -1;
     }
-    //std::string hello = "Hello from client";
-    char choice = 'y';
-    while (choice != 'q')
+    //messaging between client and server
+    while (true)
     {
         std::string hello;
         std::getline(std::cin, hello);
+        if (hello == "quit") { break; }
+
         send(sock, hello.c_str(), hello.size(), 0);
         std::cout << "Hello message sent" << std::endl;
-        ssize_t valread = read(sock, buffer, BUFFER_SIZE);
+
+        //read incoming messages from server
+        ssize_t valread = read(sock, buffer, BUFFER_SIZE - 1);
+        //null terminate unless data
+        buffer[valread] = '\0';
         std::cout << "Received: " << buffer << std::endl;
-        std::cin >> choice;
     }
     //close socket
     close(sock);
