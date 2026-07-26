@@ -46,7 +46,7 @@ int main() {
     }
     std::cout << "Server listening on port " << PORT << std::endl;
     //accept incoming connection
-    int y = 2;
+    int y = 1;
     while (y > 0)
     {
         if ((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) < 0) {
@@ -57,10 +57,13 @@ int main() {
         y--;
     }
     //read and echo the received message
-    ssize_t valread = read(new_socket, buffer, BUFFER_SIZE);
-    std::cout << "Received: " << buffer << std::endl;
-    send(new_socket, buffer, valread, 0);
-    std::cout << "Echo message sent" << std::endl;
+    while (buffer[0] != 'q')
+    {
+        ssize_t valread = read(new_socket, buffer, BUFFER_SIZE);
+        std::cout << "Received: " << buffer << std::endl;
+        send(new_socket, buffer, valread, 0);
+        std::cout << "Echo message sent" << std::endl;
+    }
     //close the socket
     close(new_socket);
     close(server_fd);

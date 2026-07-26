@@ -32,12 +32,17 @@ int main() {
         return -1;
     }
     //std::string hello = "Hello from client";
-    std::string hello;
-    std::getline(std::cin, hello);
-    send(sock, hello.c_str(), hello.size(), 0);
-    std::cout << "Hello message sent" << std::endl;
-    ssize_t valread = read(sock, buffer, BUFFER_SIZE);
-    std::cout << "Received: " << buffer << std::endl;
+    char choice = 'y';
+    while (choice != 'q')
+    {
+        std::string hello;
+        std::getline(std::cin, hello);
+        send(sock, hello.c_str(), hello.size(), 0);
+        std::cout << "Hello message sent" << std::endl;
+        ssize_t valread = read(sock, buffer, BUFFER_SIZE);
+        std::cout << "Received: " << buffer << std::endl;
+        std::cin >> choice;
+    }
     //close socket
     close(sock);
     return 0;
