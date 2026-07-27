@@ -6,9 +6,42 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <thread>
 
 constexpr int PORT = 8080;
 constexpr int BUFFER_SIZE = 1024;
+
+// struct threadSock
+// {
+//     std::thread currThread;
+//     int currSocket;
+
+//     // Constructor with parameters
+//     threadSock(std::thread t, int s)
+//     {
+//         currThread = t;
+//         currSocket = s;
+//     }
+// };
+
+
+void msgThread(int new_socket, char* buffer)
+{
+    while (true)
+    {
+        ssize_t valread = read(new_socket, buffer, BUFFER_SIZE - 1);
+        //null terminate after read message
+        buffer[valread] = '\0';
+        //break upon client termination
+        if (valread <= 0) { break; }
+
+        //echo message 
+        //TODO: send to all other clients loop through object somehow
+        send(new_socket, buffer, valread, 0);
+    }
+
+    close(new_socket);
+}
 
 int main() {
     int server_fd, new_socket;
@@ -46,33 +79,22 @@ int main() {
     }
     std::cout << "Server listening on port " << PORT << std::endl;
     //accept incoming connection
-    int y = 1;
-    while (y > 0) // this will useful once threads are introduced
+    while (true) // this will useful once threads are introduced
     {
-        if ((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) < 0) {
+        if ((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) < 0) 
+        {
             perror("accept");
             exit(EXIT_FAILURE);
         }
-        y--;
+        std::thread tester(msgThread, new_socket, buffer);
+
+        tester.detach();
         // std::cout << "Client connectd." << std::endl; TODO
     }
     //read and echo the received message
-    while (true)
-    {
-        ssize_t valread = read(new_socket, buffer, BUFFER_SIZE - 1);
-        //null terminate after read message
-        buffer[valread] = '\0';
-        //break upon client termination
-        if (valread <= 0) { break; }
-
-        //std::cout << "Received: " << buffer << std::endl;
-        //echon message 
-        //TODO: send to all other clients loop through object somehow
-        send(new_socket, buffer, valread, 0);
-        //std::cout << "Echo message sent" << std::endl;
-    }
+    //msgThread(new_socket, buffer);
     //close the socket
-    close(new_socket);
+    //close(new_socket);
     close(server_fd);
     return 0;
 }   
