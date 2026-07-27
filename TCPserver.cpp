@@ -46,12 +46,14 @@ int main() {
     }
     std::cout << "Server listening on port " << PORT << std::endl;
     //accept incoming connection
-    while (true) // this will useful once threads are introduced
+    int y = 1;
+    while (y > 0) // this will useful once threads are introduced
     {
         if ((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) < 0) {
             perror("accept");
             exit(EXIT_FAILURE);
         }
+        y--;
         // std::cout << "Client connectd." << std::endl; TODO
     }
     //read and echo the received message
@@ -63,9 +65,11 @@ int main() {
         //break upon client termination
         if (valread <= 0) { break; }
 
-        std::cout << "Received: " << buffer << std::endl;
+        //std::cout << "Received: " << buffer << std::endl;
+        //echon message 
+        //TODO: send to all other clients loop through object somehow
         send(new_socket, buffer, valread, 0);
-        std::cout << "Echo message sent" << std::endl;
+        //std::cout << "Echo message sent" << std::endl;
     }
     //close the socket
     close(new_socket);
