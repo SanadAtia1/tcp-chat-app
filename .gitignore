@@ -1,5 +1,6 @@
-server
 client
-TCPserver
+server
 TCPclient
+TCPserver
+threadTesting
 *.o
