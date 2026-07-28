@@ -32,12 +32,13 @@ int main() {
         return -1;
     }
     //messaging between client and server
+    //TODO: thread this guy up so it can read and send simulateneously
     while (true)
     {
         std::string hello;
         std::getline(std::cin, hello);
         if (hello == "quit") { break; }
-
+        
         send(sock, hello.c_str(), hello.size(), 0);
         //std::cout << "Hello message sent" << std::endl;
 
@@ -45,7 +46,7 @@ int main() {
         ssize_t valread = read(sock, buffer, BUFFER_SIZE - 1);
         //null terminate unless data
         buffer[valread] = '\0';
-        std::cout << "[ME]: " << buffer << std::endl;
+        std::cout << buffer << std::endl;
     }
     //close socket
     close(sock);

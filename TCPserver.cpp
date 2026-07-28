@@ -8,23 +8,25 @@
 #include <unistd.h>
 #include <thread>
 #include <vector>
+#include <mutex>
+#include <algorithm>
 
 constexpr int PORT = 8080;
 constexpr int BUFFER_SIZE = 1024;
-
-//struct to hold thread-socket pairs for iteration
 struct threadSock
 {
     std::thread thread;
     int socket;
     
-    //parameterized constructor 
     threadSock(std::thread&& t, int s) : thread(std::move(t)), socket(s) {}
 };
+std::vector<threadSock> threads;
+std::mutex threadSafety;
 
 //function to handle messaging between clients - passed to threads
-void msgThread(int new_socket, char* buffer, std::vector<threadSock> &threads)
+void msgThread(int new_socket)
 {
+    char buffer[BUFFER_SIZE] = {0};
     while (true)
     {
         ssize_t valread = read(new_socket, buffer, BUFFER_SIZE - 1);
@@ -33,11 +35,20 @@ void msgThread(int new_socket, char* buffer, std::vector<threadSock> &threads)
         //break upon client disconnect
         if (valread <= 0) { break; }
 
-        //echo message 
-        //TODO: send to all other clients loop through object somehow
-        send(new_socket, buffer, valread, 0);
+        //send to all connected clients 
+        std::lock_guard<std::mutex> lock(threadSafety);
+        for(auto& pair : threads) 
+        {
+            //skip the client currently sending
+            if (pair.socket == new_socket) { continue; }
+            send(pair.socket, buffer, valread, 0);
+        }  
     }
 
+    std::lock_guard<std::mutex> lock(threadSafety);
+    auto it = std::find_if(threads.begin(), threads.end(), [new_socket](const threadSock& currThread) 
+    { return new_socket == currThread.socket; });
+    threads.erase(it);
     close(new_socket);
 }
 
@@ -46,9 +57,7 @@ int main() {
     struct sockaddr_in address;
     int opt = 1;
     socklen_t addrlen = sizeof(address);
-    char buffer[BUFFER_SIZE] = {0};
-    std::vector<threadSock> threads;
-
+    
     //creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket failed");
@@ -92,7 +101,9 @@ int main() {
             exit(EXIT_FAILURE);
         }
         //create thread to begin messaging
-        std::thread messenger(msgThread, new_socket, buffer, threads);
+        std::thread messenger(msgThread, new_socket);
+        //lock mutex to protect concurrency
+        std::lock_guard<std::mutex> lock(threadSafety);
         //add thread to client list
         threads.emplace_back(std::move(messenger), new_socket);
         //detach thread, continue looping for clients
