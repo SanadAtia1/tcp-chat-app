@@ -15,16 +15,17 @@ constexpr int BUFFER_SIZE = 1024;
 void readThread (int sock)
 {
     char buffer[BUFFER_SIZE] = {0};
-
-    while (sock != -1)
+    while (true)
     {
         //read incoming messages from server
         ssize_t valread = read(sock, buffer, BUFFER_SIZE - 1);
-        std::cout << "read msg..." << std::endl;
+        if (valread <= 0) { break; }
         //null terminate unless data
         buffer[valread] = '\0';
-        std::cout << "from server: " << buffer << std::endl;
+        std::cout << buffer << std::endl;
     }
+
+    close(sock);
 }
 
 int main() {
@@ -58,19 +59,10 @@ int main() {
     {
         std::string msg;
         std::getline(std::cin, msg);
-        if (msg == "quit") { std::cout << "quitting..." << std::endl; sock = -1;; break; }
+        if (msg == "quit") { shutdown(sock, SHUT_RD); break; }
         send(sock, msg.c_str(), msg.size(), 0);
     }
 
-std::cout << "about to detach socket..." << std::endl;
-    reader.detach();
-    std::cout << "detached socket..." << std::endl;
-
-    //close socket
-    //close(sock);
-    close(sock);
-    std::cout << "closed socket..." << std::endl;
-    std::cout << "goodbye..." << std::endl;
+    reader.join();
     return 0;
 }
-//g++ TCPclient.cpp -o client

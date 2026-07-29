@@ -7,40 +7,41 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <thread>
-#include <vector>
+#include <unordered_map>
 #include <mutex>
 #include <algorithm>
 
 constexpr int PORT = 8080;
 constexpr int BUFFER_SIZE = 1024;
-std::vector<int> sockets;
+std::unordered_map<int, std::string> sockMap;
 std::mutex threadSafety;
 
-//function to handle messaging between clients - passed to threads
 void msgThread(int new_socket)
 {
+    std::string name;
+    
+
     char buffer[BUFFER_SIZE] = {0};
     while (true)
     {
         ssize_t valread = read(new_socket, buffer, BUFFER_SIZE - 1);
-        //null terminate after read message
+        //avoid stale data leftover
         buffer[valread] = '\0';
         //break upon client disconnect
         if (valread <= 0) { break; }
 
         //send to all connected clients 
         std::lock_guard<std::mutex> lock(threadSafety);
-        for(int sock : sockets) 
+        for(const auto& pair : sockMap) 
         {
             //skip the client currently sending
-            if (sock == new_socket) { continue; }
-            send(sock, buffer, valread, 0);
+            if (pair.first == new_socket) { continue; }
+            send(pair.first, buffer, valread, 0);
         }  
     }
 
     std::lock_guard<std::mutex> lock(threadSafety);
-    auto it = std::find(sockets.begin(), sockets.end(), new_socket);
-    sockets.erase(it);
+    sockMap.erase(new_socket);
     close(new_socket);
 }
 
@@ -56,11 +57,6 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // //forcefully attaching socket to the port 8080
-    // if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
-    //     perror("setsockopt");
-    //     exit(EXIT_FAILURE);
-    // }
     //forcefully attaching socket to the port 8080 [MAC]
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
         perror("setsockopt");
@@ -92,10 +88,12 @@ int main() {
             perror("accept");
             exit(EXIT_FAILURE);
         }
+
         //lock mutex to protect concurrency
         std::lock_guard<std::mutex> lock(threadSafety);
-        //add socket to client list
-        sockets.push_back(new_socket);
+        // //add socket to client list
+        sockMap[new_socket] = "";
+        // sockets.push_back(new_socket);
         //create thread to begin messaging
         std::thread messenger(msgThread, new_socket);
         //detach thread, continue looping for clients
@@ -105,5 +103,4 @@ int main() {
 
     close(server_fd);
     return 0;
-}   
-//g++ TCPserver.cpp -o server
+}
