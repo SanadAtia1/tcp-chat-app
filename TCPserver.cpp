@@ -13,14 +13,7 @@
 
 constexpr int PORT = 8080;
 constexpr int BUFFER_SIZE = 1024;
-struct threadSock
-{
-    std::thread thread;
-    int socket;
-    
-    threadSock(std::thread&& t, int s) : thread(std::move(t)), socket(s) {}
-};
-std::vector<threadSock> threads;
+std::vector<int> sockets;
 std::mutex threadSafety;
 
 //function to handle messaging between clients - passed to threads
@@ -37,18 +30,17 @@ void msgThread(int new_socket)
 
         //send to all connected clients 
         std::lock_guard<std::mutex> lock(threadSafety);
-        for(auto& pair : threads) 
+        for(int sock : sockets) 
         {
             //skip the client currently sending
-            if (pair.socket == new_socket) { continue; }
-            send(pair.socket, buffer, valread, 0);
+            if (sock == new_socket) { continue; }
+            send(sock, buffer, valread, 0);
         }  
     }
 
     std::lock_guard<std::mutex> lock(threadSafety);
-    auto it = std::find_if(threads.begin(), threads.end(), [new_socket](const threadSock& currThread) 
-    { return new_socket == currThread.socket; });
-    threads.erase(it);
+    auto it = std::find(sockets.begin(), sockets.end(), new_socket);
+    sockets.erase(it);
     close(new_socket);
 }
 
@@ -100,14 +92,14 @@ int main() {
             perror("accept");
             exit(EXIT_FAILURE);
         }
-        //create thread to begin messaging
-        std::thread messenger(msgThread, new_socket);
         //lock mutex to protect concurrency
         std::lock_guard<std::mutex> lock(threadSafety);
-        //add thread to client list
-        threads.emplace_back(std::move(messenger), new_socket);
+        //add socket to client list
+        sockets.push_back(new_socket);
+        //create thread to begin messaging
+        std::thread messenger(msgThread, new_socket);
         //detach thread, continue looping for clients
-        threads.back().thread.detach();
+        messenger.detach();
         //std::cout << "Clients connectd: " << threads.size() << std::endl;
     }
 
