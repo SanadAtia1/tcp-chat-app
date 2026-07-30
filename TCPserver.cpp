@@ -18,17 +18,36 @@ std::mutex threadSafety;
 
 void msgThread(int new_socket)
 {
-    std::string name;
-    
-
     char buffer[BUFFER_SIZE] = {0};
+    //read client name
+    ssize_t valread = read(new_socket, buffer, BUFFER_SIZE - 1);
+    //avoid stale data leftover
+    buffer[valread] = '\0';
+    //cleanup/return upon client disconnect
+    if (valread <= 0) 
+    { 
+        std::lock_guard<std::mutex> lock(threadSafety);
+        shutdown(new_socket, SHUT_RDWR);
+        sockMap.erase(new_socket);
+        close(new_socket);
+        return; 
+    }
+    //store name as string and format
+    std::string name(buffer);
+    name = "[" + name + "]: ";
+    {
+        //add name to mapped client list
+        std::lock_guard<std::mutex> lock(threadSafety);
+        sockMap[new_socket] = name;
+    }
+
     while (true)
     {
+        std::string temp;
         ssize_t valread = read(new_socket, buffer, BUFFER_SIZE - 1);
-        //avoid stale data leftover
         buffer[valread] = '\0';
-        //break upon client disconnect
         if (valread <= 0) { break; }
+        temp = name + buffer;
 
         //send to all connected clients 
         std::lock_guard<std::mutex> lock(threadSafety);
@@ -36,10 +55,11 @@ void msgThread(int new_socket)
         {
             //skip the client currently sending
             if (pair.first == new_socket) { continue; }
-            send(pair.first, buffer, valread, 0);
+            send(pair.first, temp.c_str(), temp.size(), 0);
         }  
     }
 
+    //cleanup map and close socket
     std::lock_guard<std::mutex> lock(threadSafety);
     sockMap.erase(new_socket);
     close(new_socket);
@@ -89,14 +109,11 @@ int main() {
             exit(EXIT_FAILURE);
         }
 
-        //lock mutex to protect concurrency
         std::lock_guard<std::mutex> lock(threadSafety);
-        // //add socket to client list
         sockMap[new_socket] = "";
-        // sockets.push_back(new_socket);
-        //create thread to begin messaging
+        //create messaging thread
         std::thread messenger(msgThread, new_socket);
-        //detach thread, continue looping for clients
+        //detach thread - continue looping for clients
         messenger.detach();
         //std::cout << "Clients connectd: " << threads.size() << std::endl;
     }

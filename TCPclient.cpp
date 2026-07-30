@@ -17,10 +17,9 @@ void readThread (int sock)
     char buffer[BUFFER_SIZE] = {0};
     while (true)
     {
-        //read incoming messages from server
         ssize_t valread = read(sock, buffer, BUFFER_SIZE - 1);
         if (valread <= 0) { break; }
-        //null terminate unless data
+        //null terminate stale data
         buffer[valread] = '\0';
         std::cout << buffer << std::endl;
     }
@@ -53,6 +52,12 @@ int main() {
     }
 
     std::thread reader(readThread, sock);
+
+    //send name to server
+    std::string name;
+    std::cout << "Enter name (viewed by all clients): ";
+    std::cin >> name;
+    send(sock, name.c_str(), name.size(), 0);
 
     //messaging between client and server
     while (true)
