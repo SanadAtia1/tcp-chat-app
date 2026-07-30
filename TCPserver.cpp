@@ -115,7 +115,6 @@ int main() {
         std::thread messenger(msgThread, new_socket);
         //detach thread - continue looping for clients
         messenger.detach();
-        //std::cout << "Clients connectd: " << threads.size() << std::endl;
     }
 
     close(server_fd);
